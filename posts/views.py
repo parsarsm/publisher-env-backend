@@ -1,18 +1,19 @@
 from datetime import timedelta
 
+from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils.datetime_safe import datetime
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
-from rest_framework.pagination import BasePagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.viewsets import ViewSet
+from rest_framework.viewsets import ViewSet, ModelViewSet
 
-from posts.models import Post, PostReaction
-from posts.serializers import PostSerializer, PostReactionSerializer
+from posts.models import Post, PostReaction, Image
+from posts.permissions import IsOwnerOrReadOnly
+from posts.serializers import PostSerializer, PostReactionSerializer, ImageSerializer, UserWithProfileSerializer
 
 
 def paginate_queryset(queryset, request, key, page_size):
@@ -40,6 +41,10 @@ class LikeDislikeViewSet:
     @action(detail=True, methods=['post', 'delete'], permission_classes=[IsAuthenticated])
     def like(self, request, pk=None):
         return self._reaction(request, pk, True)
+
+    @action(detail=True, methods=['post'])
+    def hi(self, request, pk=None):
+        return Response(UserWithProfileSerializer(User.objects.get(pk=pk)).data)
 
     @action(detail=True, methods=['post', 'delete'], permission_classes=[IsAuthenticated])
     def dislike(self, request, pk=None):
@@ -127,6 +132,11 @@ class PostsViewSet(ViewSet, LikeDislikeViewSet):
         kwargs['partial'] = True
         return self.update(request, *args, **kwargs)
 
+
+class ImagesViewSet(ModelViewSet):
+    queryset = Image.objects.all()
+    serializer_class = ImageSerializer
+    permission_classes = [IsOwnerOrReadOnly]
 
 # class ProfileViewSet(ViewSet):
 #     def retrieve(self, request, pk=None):

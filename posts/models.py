@@ -80,3 +80,12 @@ class Notification(models.Model):
 
 class Image(models.Model):
     file = models.FileField(blank=False, null=False)
+    created_by = models.ForeignKey(to=User, on_delete=models.CASCADE)
+
+
+class Profile(models.Model):
+    user = models.ForeignKey(to=User, null=False, on_delete=models.CASCADE, db_index=True, unique=True,
+                             related_name='profile')
+    avatar = models.ForeignKey(to=Image, null=True, blank=True, on_delete=models.SET_NULL)
+    birthday = models.DateField(blank=True, null=True)
+    description = models.TextField(blank=True, default='')
