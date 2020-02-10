@@ -14,26 +14,13 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.conf.urls import url
+from django.conf.urls.static import static
 from django.contrib import admin
-from django.contrib.auth.models import User
 from django.urls import path, include
-from rest_framework import serializers, viewsets, routers
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-
-class UserSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = User
-        fields = ['url', 'username', 'email', 'is_staff']
-
-
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-
-
-router = routers.DefaultRouter()
-router.register(r'users', UserViewSet)
+from posts.urls import router
+from webbackend import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -41,3 +28,6 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     url(r'^api/', include(router.urls)),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

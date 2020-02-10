@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models import Count, Q
 
 
 class Channel(models.Model):
@@ -25,8 +26,8 @@ class ChannelMembership(models.Model):
 
 
 class ProfileMembership(models.Model):
-    followed_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followed_users')
-    follower_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following_users')
+    followed_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following_users')
+    follower_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followed_users')
     created_at = models.DateTimeField(auto_created=True, db_index=True)
 
 
@@ -34,21 +35,40 @@ class Post(models.Model):
     title = models.CharField(max_length=255)
     text = models.TextField()
     summary = models.TextField()
-    created_at = models.DateTimeField(auto_created=True, db_index=True)
-    updated_at = models.DateTimeField(auto_now=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True, db_index=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
-    channel = models.ForeignKey(Channel, on_delete=models.CASCADE, blank=True)
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True)
+    channel = models.ForeignKey(Channel, on_delete=models.CASCADE, null=True, blank=True)
+    dislikes_count = models.IntegerField(default=0)
+    likes_count = models.IntegerField(default=0)
+    comments_count = models.IntegerField(default=0)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name="children")
+
+    def get_user_view(user_id=None):
+        if user_id:
+            return Post.objects.annotate(
+                liked=Count('postreaction', filter=Q(postreaction__user=user_id, postreaction__like=True)),
+                disliked=Count('postreaction', filter=Q(postreaction__user=user_id, postreaction__like=False))
+            )
+        else:
+            return Post.objects.annotate(
+                liked=0,
+                disliked=0
+            )
 
 
-class PostLike(models.Model):
+class FeedPost(models.Model):
+    user = models.ForeignKey(to=User, on_delete=models.CASCADE, db_index=True, null=False)
+    post = models.ForeignKey(to=Post, on_delete=models.CASCADE, db_index=True, null=False, related_name="feed")
+
+
+class PostReaction(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    like = models.BooleanField()
 
-
-class PostDislike(models.Model):
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    class Meta:
+        unique_together = ['post', 'user']
 
 
 class Notification(models.Model):
@@ -56,3 +76,7 @@ class Notification(models.Model):
     seen = models.BooleanField(default=False)
     metadata = models.TextField()
     created_at = models.DateTimeField(auto_created=True, db_index=True)
+
+
+class Image(models.Model):
+    file = models.FileField(blank=False, null=False)
