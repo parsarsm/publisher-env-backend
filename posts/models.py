@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import Count, Q
+from django.db.models import Count, Q, F
 
 
 class Channel(models.Model):
@@ -45,16 +45,13 @@ class Post(models.Model):
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name="children")
 
     def get_user_view(user_id=None):
-        if user_id:
+        if user_id is not None:
             return Post.objects.annotate(
                 liked=Count('postreaction', filter=Q(postreaction__user=user_id, postreaction__like=True)),
                 disliked=Count('postreaction', filter=Q(postreaction__user=user_id, postreaction__like=False))
             )
         else:
-            return Post.objects.annotate(
-                liked=0,
-                disliked=0
-            )
+            return Post.objects
 
 
 class FeedPost(models.Model):
