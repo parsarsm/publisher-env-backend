@@ -24,9 +24,6 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 
 class UserWithProfileSerializer(serializers.BaseSerializer):
-    def to_internal_value(self, data):
-        pass
-
     def to_representation(self, instance):
         user = UserSerializer(instance).data
 
@@ -35,16 +32,6 @@ class UserWithProfileSerializer(serializers.BaseSerializer):
             profile = ProfileSerializer(instance.profile.all()[0]).data
 
         return {**profile, **user}
-
-    @staticmethod
-    def _split_data(d):
-        pass
-
-    def update(self, instance, validated_data):
-        pass
-
-    def create(self, validated_data):
-        pass
 
 
 class ImageSerializer(serializers.ModelSerializer):

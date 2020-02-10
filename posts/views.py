@@ -11,9 +11,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet, ModelViewSet
 
-from posts.models import Post, PostReaction, Image
-from posts.permissions import IsOwnerOrReadOnly
-from posts.serializers import PostSerializer, PostReactionSerializer, ImageSerializer, UserWithProfileSerializer
+from posts.models import Post, PostReaction, Image, Profile
+from posts.permissions import IsOwnerOrReadOnly, IsSameUser, IsSame
+from posts.serializers import PostSerializer, PostReactionSerializer, ImageSerializer, UserWithProfileSerializer, \
+    ProfileSerializer, UserSerializer
 
 
 def paginate_queryset(queryset, request, key, page_size):
@@ -138,25 +139,20 @@ class ImagesViewSet(ModelViewSet):
     serializer_class = ImageSerializer
     permission_classes = [IsOwnerOrReadOnly]
 
-# class ProfileViewSet(ViewSet):
-#     def retrieve(self, request, pk=None):
-#         post = Post.get_user_view(request.user.id).get(pk=pk)
-#         replies = Post.get_user_view(request.user.id).filter(
-#             Q(parent=pk) | Q(parent__parent=pk) | Q(parent__parent=pk))
-#         serializer = PostSerializer([post] + list(replies), many=True)
-#         return Response(serializer.data)
-#
-#     def update(self, request, pk, *args, **kwargs):
-#         partial = kwargs.pop('partial', False)
-#         instance = get_object_or_404(Post, pk=pk)
-#         serializer = PostSerializer(instance, data=request.data, partial=partial)
-#         try:
-#             serializer.is_valid(raise_exception=True)
-#             serializer.save()
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         except ValidationError as e:
-#             return Response({'detail': e.detail}, status=status.HTTP_400_BAD_REQUEST)
-#
-#     def partial_update(self, request, *args, **kwargs):
-#         kwargs['partial'] = True
-#         return self.update(request, *args, **kwargs)
+
+class ProfileViewSet(ModelViewSet):
+    queryset = Profile.objects.all()
+    serializer_class = ProfileSerializer
+    permission_classes = [IsSameUser]
+
+    @action(detail=False, permission_classes=[IsAuthenticated])
+    def my(self, request, pk=None):
+        user = request.user
+        serializer = UserWithProfileSerializer(user)
+        return Response(serializer.data)
+
+
+class UserViewSet(ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsSame]
